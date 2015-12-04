@@ -292,6 +292,23 @@ JoinTestSuite.test("${Base}.join()/_copyToNativeArrayBuffer()") {
 
 % end
 
+JoinTestSuite.test("Collection.lazy.map.joinWithSeparator()") {
+  // make sure we only evaluate each element once
+  for test in joinWithSeparatorTests {
+    var expectSeen: [Int: Int] = [:]
+    for i in 0..<test.elements.count {
+      expectSeen[i] = 1
+    }
+    var seen: [Int: Int] = [:]
+    let elements = test.elements.enumerate().lazy.map({ (i, x) -> [Int] in
+      seen[i] = (seen[i] ?? 0) + 1
+      return x
+    })
+    _ = Array(elements.joinWithSeparator(test.separator))
+    expectEqual(expectSeen, seen)
+  }
+}
+
 func join(separator: String, _ elements: [String]) -> String {
   return elements.joinWithSeparator(separator)
 }
@@ -334,6 +351,28 @@ JoinTestSuite.test("String.joinWithSeparator()") {
   //
 
   expectEqual("abxycdxyef", ["ab", "cd", "ef"].joinWithSeparator("xy"))
+}
+
+JoinTestSuite.test("StringCollection.joinWithSeparator()") {
+  // make sure we only evaluate each element once
+  func testLazyJoin(separator: String, _ elements: [String]) {
+    var expectSeen: [Int: Int] = [:]
+    for i in 0..<elements.count {
+      expectSeen[i] = 1
+    }
+    var seen: [Int: Int] = [:]
+    // elements needs to be a collection, not a sequence
+    let elements = Array(elements.enumerate()).lazy.map({ (i, x) -> String in
+      seen[i] = (seen[i] ?? 0) + 1
+      return x
+    })
+    let _: String = elements.joinWithSeparator(separator)
+    expectEqual(expectSeen, seen)
+  }
+
+  testLazyJoin("", ["a"])
+  testLazyJoin("", ["a", "b", "c"])
+  testLazyJoin("xy", ["ab", "cd", "ef"])
 }
 
 runAllTests()
